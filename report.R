@@ -519,4 +519,8 @@ waldtest(contam.input, contam.null)
 waldtest(contam.source, contam.null)
 
 summary(contam.null)
-
+par(mfrow=c(2,2))
+plot(contam.null, which = 1)
+plot(contam.null, which = 2)
+plot(contam.null, which = 3)
+plot(contam.null, which = 5)
