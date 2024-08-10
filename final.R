@@ -96,41 +96,345 @@ df %>%
   select(!contains('prop_1240k'))%>%
   ggpairs(aes(colour = source))
 
+
+library(lme4)
+library(glmmTMB)
+library(car)
+library(lmtest)
+library(dplyr)
+library(ggplot2)
+
 #### input reads vs SNPs_1240k----
-snps.interaction <- lm(SNPs_1240k_N ~ input_reads_N*source, data = df)
+summary(df$SNPs_1240k)
 
-snps.interaction.random <- lme(fixed = SNPs_1240k_N ~ input_reads_N * source,
-                 random = ~ 1 | sample,
-                 data = df)
+df %>%
+  ggplot(aes(x=input_reads_N,
+             y=SNPs_1240k_N,
+             col=source))+
+  theme_bw()+
+  geom_point(size = 2)+
+  geom_smooth(se = FALSE, method = "lm")
 
-lmer_additive_slope <- lmer(formula = SNPs_1240k_N ~ input_reads_N*source + (1 | sample), 
-                            data    = df)
+snps.interaction <- lmer(SNPs_1240k_N ~ input_reads_N*source + (1|sample), data = df)
+summary(snps.interaction)
 
-anova(snps.interaction, snps.interaction.random)
-
-snps.add <- lm(SNPs_1240k_N ~ input_reads_N+source, data = df)
+snps.add <- lmer(SNPs_1240k_N ~ input_reads_N + source + (1|sample), data = df)
 summary(snps.add)
 Anova(snps.interaction) 
-# Up can tell us interaction does not matter
-# Below do the same
 waldtest(snps.interaction, snps.add)
 
-snps.input <- lm(SNPs_1240k_N ~ input_reads_N, data = df)
+snps.input <- lmer(SNPs_1240k_N ~ input_reads_N + (1|sample), data = df)
 summary(snps.input)
 
-snps.source <- lm(SNPs_1240k_N ~ source, data = df)
+snps.source <- lmer(SNPs_1240k_N ~ source + (1|sample), data = df)
 summary(snps.source)
 waldtest(snps.add, snps.input)
-# Need source
 waldtest(snps.add, snps.source)
-# Need input
-
 summary(snps.add)
-# SNPs_1240k_N=0.6103+0.3071×input_reads_N−1.1740×source1240k+ϵ
-# Twist performance better
+
 par(mfrow=c(2,2))
 plot(snps.add, which = 1)
 plot(snps.add, which = 2)
 plot(snps.add, which = 3)
 plot(snps.add, which = 5)
-# Outlier 怎么办，如果plot不完美怎么办
+
+#### input reads vs mapped_reads----
+df %>%
+  ggplot(aes(x=input_reads_N,
+             y=mapped_reads_N,
+             col=source))+
+  theme_bw()+
+  geom_point(size = 2)+
+  geom_smooth(se = FALSE)
+
+mapped_reads.interaction <- lmer(mapped_reads_N ~ input_reads_N*source + (1|sample), data = df)
+summary(mapped_reads.interaction)
+
+mapped_reads.add <- lmer(mapped_reads_N ~ input_reads_N + source + (1|sample), data = df)
+summary(mapped_reads.add)
+waldtest(mapped_reads.interaction, mapped_reads.add)
+
+mapped_reads.input <- lmer(mapped_reads_N ~ input_reads_N + (1|sample), data = df)
+summary(mapped_reads.input)
+
+mapped_reads.source <- lmer(mapped_reads_N ~ source + (1|sample), data = df)
+summary(mapped_reads.source)
+waldtest(mapped_reads.add, mapped_reads.input)
+waldtest(mapped_reads.add, mapped_reads.source)
+summary(mapped_reads.add)
+
+par(mfrow=c(2,2))
+plot(mapped_reads.add, which = 1)
+plot(mapped_reads.add, which = 2)
+plot(mapped_reads.add, which = 3)
+plot(mapped_reads.add, which = 5)
+
+#### input reads vs endogenous----
+df %>%
+  ggplot(aes(x=input_reads_N,
+             y=endogenous,
+             col=source))+
+  theme_bw()+
+  geom_point(size = 2)+
+  geom_smooth(se = FALSE)
+
+endogenous.interaction <- glmmTMB(endogenous ~ input_reads_N*source + (1|sample), 
+                                  data = df, family = beta_family())
+summary(endogenous.interaction)
+
+endogenous.add <- glmmTMB(endogenous ~ input_reads_N + source + (1|sample), 
+                          data = df, family = beta_family())
+summary(endogenous.add)
+waldtest(endogenous.interaction, endogenous.add)
+
+endogenous.source <- glmmTMB(endogenous ~ source + (1|sample), 
+                             data = df, family = beta_family())
+summary(endogenous.source)
+
+endogenous.input <- glmmTMB(endogenous ~ input_reads_N + (1|sample), 
+                            data = df, family = beta_family())
+summary(endogenous.input)
+waldtest(endogenous.add, endogenous.source)
+waldtest(endogenous.add, endogenous.input)
+
+par(mfrow=c(2,2))
+plot(endogenous.source, which = 1)
+plot(endogenous.source, which = 2)
+plot(endogenous.source, which = 3)
+plot(endogenous.source, which = 5)
+
+#### input reads vs prop_dup----
+df %>%
+  ggplot(aes(x=input_reads_N,
+             y=prop_dup,
+             col=source))+
+  theme_bw()+
+  geom_point(size = 2)+
+  geom_smooth(se = FALSE)
+
+prop_dup.interaction <- glmmTMB(prop_dup ~ input_reads_N*source + (1|sample), 
+                                data = df, family = beta_family())
+summary(prop_dup.interaction)
+
+prop_dup.add <- glmmTMB(prop_dup ~ input_reads_N + source + (1|sample), 
+                        data = df, family = beta_family())
+summary(prop_dup.add)
+waldtest(prop_dup.interaction, prop_dup.add)
+
+prop_dup.source <- glmmTMB(prop_dup ~ source + (1|sample), 
+                           data = df, family = beta_family())
+summary(prop_dup.source)
+
+prop_dup.input <- glmmTMB(prop_dup ~ input_reads_N + (1|sample), 
+                          data = df, family = beta_family())
+summary(prop_dup.input)
+waldtest(prop_dup.add, prop_dup.source)
+waldtest(prop_dup.add, prop_dup.input)
+
+par(mfrow=c(2,2))
+plot(prop_dup.add, which = 1)
+plot(prop_dup.add, which = 2)
+plot(prop_dup.add, which = 3)
+plot(prop_dup.add, which = 5)
+
+#### input reads vs mtNuc_ratio----
+df %>%
+  ggplot(aes(x=input_reads_N,
+             y=mtNuc_ratio,
+             col=source))+
+  theme_bw()+
+  geom_point(size = 2)+
+  geom_smooth(se = FALSE)
+
+mtNuc_ratio.interaction <- lmer(mtNuc_ratio ~ input_reads_N*source + (1|sample), data = df)
+summary(mtNuc_ratio.interaction)
+
+mtNuc_ratio.add <- lmer(mtNuc_ratio ~ input_reads_N + source + (1|sample), data = df)
+summary(mtNuc_ratio.add)
+waldtest(mtNuc_ratio.interaction, mtNuc_ratio.add)
+
+mtNuc_ratio.source <- lmer(mtNuc_ratio ~ source + (1|sample), data = df)
+summary(mtNuc_ratio.source)
+
+mtNuc_ratio.input <- lmer(mtNuc_ratio ~ input_reads_N + (1|sample), data = df)
+summary(mtNuc_ratio.input)
+waldtest(mtNuc_ratio.add, mtNuc_ratio.source)
+waldtest(mtNuc_ratio.add, mtNuc_ratio.input)
+
+par(mfrow=c(2,2))
+plot(mtNuc_ratio.add, which = 1)
+plot(mtNuc_ratio.add, which = 2)
+plot(mtNuc_ratio.add, which = 3)
+plot(mtNuc_ratio.add, which = 5)
+
+#### input reads vs unique_reads----
+df %>%
+  ggplot(aes(x=input_reads_N,
+             y=unique_reads,
+             col=source))+
+  theme_bw()+
+  geom_point(size = 2)+
+  geom_smooth(se = FALSE)
+
+unique_reads.interaction <- lmer(unique_reads ~ input_reads_N*source + (1|sample), data = df)
+summary(unique_reads.interaction)
+
+unique_reads.add <- lmer(unique_reads ~ input_reads_N + source + (1|sample), data = df)
+summary(unique_reads.add)
+waldtest(unique_reads.interaction, unique_reads.add)
+
+unique_reads.source <- lmer(unique_reads ~ source + (1|sample), data = df)
+summary(unique_reads.source)
+
+unique_reads.input <- lmer(unique_reads ~ input_reads_N + (1|sample), data = df)
+summary(unique_reads.input)
+waldtest(unique_reads.add, unique_reads.source)
+waldtest(unique_reads.add, unique_reads.input)
+
+par(mfrow=c(2,2))
+plot(unique_reads.add, which = 1)
+plot(unique_reads.add, which = 2)
+plot(unique_reads.add, which = 3)
+plot(unique_reads.add, which = 5)
+
+#### input reads vs coverage----
+df %>%
+  ggplot(aes(x=input_reads_N,
+             y=coverage,
+             col=source))+
+  theme_bw()+
+  geom_point(size = 2)+
+  geom_smooth(se = FALSE)
+
+coverage.interaction <- lmer(coverage ~ input_reads_N*source + (1|sample), data = df)
+summary(coverage.interaction)
+
+coverage.add <- lmer(coverage ~ input_reads_N + source + (1|sample), data = df)
+summary(coverage.add)
+waldtest(coverage.interaction, coverage.add)
+
+coverage.source <- lmer(coverage ~ source + (1|sample), data = df)
+summary(coverage.source)
+
+coverage.input <- lmer(coverage ~ input_reads_N + (1|sample), data = df)
+summary(coverage.input)
+waldtest(coverage.add, coverage.source)
+waldtest(coverage.add, coverage.input)
+
+par(mfrow=c(2,2))
+plot(coverage.add, which = 1)
+plot(coverage.add, which = 2)
+plot(coverage.add, which = 3)
+plot(coverage.add, which = 5)
+
+#### input reads vs GC linear----
+df %>%
+  ggplot(aes(x=input_reads_N,
+             y=GC,
+             col=source))+
+  theme_bw()+
+  geom_point(size = 2)+
+  geom_smooth(se = FALSE)
+
+gc.interaction <- lmer(GC ~ input_reads_N*source + (1|sample), data = df)
+summary(gc.interaction)
+
+gc.add <- lmer(GC ~ input_reads_N + source + (1|sample), data = df)
+summary(gc.add)
+waldtest(gc.interaction, gc.add)
+
+gc.source <- lmer(GC ~ source + (1|sample), data = df)
+summary(gc.source)
+
+gc.input <- lmer(GC ~ input_reads_N + (1|sample), data = df)
+summary(gc.input)
+waldtest(gc.add, gc.source)
+waldtest(gc.add, gc.input)
+
+par(mfrow=c(2,2))
+plot(gc.add, which = 1)
+plot(gc.add, which = 2)
+plot(gc.add, which = 3)
+plot(gc.add, which = 5)
+
+####GC log----
+gc1.interaction <- glmmTMB(gc ~ input_reads_N*source + (1|sample), 
+                           data = df1, family = beta_family())
+summary(gc1.interaction)
+
+gc1.add <- glmmTMB(gc ~ input_reads_N + source + (1|sample), 
+                   data = df1, family = beta_family())
+summary(gc1.add)
+waldtest(gc1.interaction, gc1.add)
+
+gc1.source <- glmmTMB(gc ~ source + (1|sample), 
+                      data = df1, family = beta_family())
+summary(gc1.source)
+
+gc1.input <- glmmTMB(gc ~ input_reads_N + (1|sample), 
+                     data = df1, family = beta_family())
+summary(gc1.input)
+waldtest(gc1.add, gc1.source)
+waldtest(gc1.add, gc1.input)
+
+par(mfrow=c(2,2))
+plot(gc1.add, which = 1)
+plot(gc1.add, which = 2)
+plot(gc1.add, which = 3)
+plot(gc1.add, which = 5)
+
+#### input reads vs SNPs_cont ----
+df %>%
+  ggplot(aes(x=input_reads_N,
+             y=SNPs_cont,
+             col=source))+
+  theme_bw()+
+  geom_point(size = 2)+
+  geom_smooth(se = FALSE)
+
+snps_cont.interaction <- lmer(SNPs_cont ~ input_reads_N*source + (1|sample), data = df)
+summary(snps_cont.interaction)
+
+snps_cont.add <- lmer(SNPs_cont ~ input_reads_N + source + (1|sample), data = df)
+summary(snps_cont.add)
+waldtest(snps_cont.interaction, snps_cont.add)
+
+par(mfrow=c(2,2))
+plot(snps_cont.add, which = 1)
+plot(snps_cont.add, which = 2)
+plot(snps_cont.add, which = 3)
+plot(snps_cont.add, which = 5)
+
+#### input reads vs contam----
+df %>%
+  ggplot(aes(x=input_reads_N,
+             y=contam,
+             col=source))+
+  theme_bw()+
+  geom_point(size = 2)+
+  geom_smooth(se = FALSE)
+
+contam.interaction <- glmmTMB(contam ~ input_reads_N*source + (1|sample), 
+                              data = df, family = beta_family())
+summary(contam.interaction)
+
+contam.add <- glmmTMB(contam ~ input_reads_N + source + (1|sample), 
+                      data = df, family = beta_family())
+summary(contam.add)
+waldtest(contam.interaction, contam.add)
+
+contam.source <- glmmTMB(contam ~ source + (1|sample), 
+                         data = df, family = beta_family())
+summary(contam.source)
+
+contam.input <- glmmTMB(contam ~ input_reads_N + (1|sample), 
+                        data = df, family = beta_family())
+summary(contam.input)
+waldtest(contam.add, contam.source)
+waldtest(contam.add, contam.input)
+
+par(mfrow=c(2,2))
+plot(contam.add, which = 1)
+plot(contam.add, which = 2)
+plot(contam.add, which = 3)
+plot(contam.add, which = 5)
